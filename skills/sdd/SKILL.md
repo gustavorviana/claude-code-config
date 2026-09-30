@@ -43,16 +43,42 @@ Desenvolvedor experiente, principalmente em C#/.NET. Não explique conceitos bá
 1. **Inventário**: peça o material disponível (código, schema do banco, docs, endpoints, logs) e diga o que falta. Se o código estiver acessível no workspace, leia-o diretamente em vez de pedir trechos.
 2. **Engenharia reversa**: extraia bounded contexts, entidades, regras de negócio, fluxos, integrações e contratos implícitos. Cite a origem (`arquivo:linha`) de cada regra extraída do código.
 3. **Spec as-is**: documente o comportamento atual e classifique cada item como:
-   - `[CONFIRMADO]`: visto no código ou confirmado pelo usuário
-   - `[INFERIDO]`: dedução sua, que precisa de validação
-   - `[DESCONHECIDO]`: lacuna
-4. **Achados**: inconsistências, regras duplicadas, dívida técnica, comportamento que parece bug mas pode ser regra de negócio.
-5. **Spec to-be e delta**: o que muda, o que permanece, impacto e estratégia de migração.
+   - `[CONFIRMED]`: visto no código ou em um teste, com origem citada, ou confirmado pelo usuário
+   - `[INFERRED]`: dedução sua, que precisa de validação
+   - `[UNKNOWN]`: lacuna
+4. **Achados** (`findings.md`): `F-001`... classificados como inconsistency, duplication, debt, possible bug, bug or rule ou untested, cada um com origem, requisitos relacionados e resolução (`open`, `accepted as rule (RN-...)`, `fixed by TASK-...`, `won't fix (<motivo>)`).
+5. **Spec to-be**: a mesma `spec.md` passa a `Mode: to-be`, incorporando as resoluções dos achados. `plan.md` e `tasks.md` descrevem a mudança e fecham os achados.
 
 # Artefatos
 
-- Entregue os artefatos em Markdown, gravados como arquivos no repositório do projeto. Antes do primeiro arquivo, confirme o diretório. O padrão sugerido é `specs/<nome-da-feature-ou-sistema>/`.
-- Use os modelos em [templates.md](templates.md) como ponto de partida e adapte ao caso. Não preencha seções com conteúdo genérico só para completar o modelo.
+Artefatos em Markdown, gravados no repositório do projeto. Antes do primeiro arquivo, confirme o diretório. Estrutura padrão:
+
+```
+docs/
+  _templates/            # cópia dos modelos da skill (spec, findings, plan, tasks, adr)
+  adr/                   # ADR-NNNN-<titulo-kebab>.md (numeração global, 4 dígitos)
+  specs/
+    README.md            # processo, tabela de IDs, tags de evidência, índice de capabilities com status
+    constitution.md      # princípios globais (P-xxx) e NFRs obrigatórios
+    <capability>/        # uma pasta por capability, nome em kebab-case
+      spec.md            # obrigatório
+      findings.md        # só brownfield
+      plan.md, tasks.md  # só quando há mudança em andamento
+```
+
+- Organize por **capability** (comportamento coeso do sistema), não por camada técnica.
+- Em projeto sem essa estrutura, crie `docs/specs/README.md`, `docs/specs/constitution.md` e `docs/_templates/` a partir dos modelos, e mantenha o índice de capabilities do README atualizado (inclusive as `not started`).
+- Modelos em [templates/](templates/): [spec](templates/spec.md), [findings](templates/findings.md), [plan](templates/plan.md), [tasks](templates/tasks.md), [adr](templates/adr.md), [constitution](templates/constitution.md), [README](templates/README.md). Adapte ao caso; não preencha seções com conteúdo genérico só para completar o modelo.
+- **Idioma**: os modelos da skill estão em inglês, mas os artefatos seguem o idioma do projeto (definido na constituição ou pedido pelo usuário). Qualquer que seja o idioma, tudo sai nele: a cópia em `docs/_templates/`, os títulos de seção, os campos (`Status`, `Source`, `Done when`...), as tags de evidência (em português, por exemplo, `[CONFIRMADO]`, `[INFERIDO]`, `[DESCONHECIDO]`) e o conteúdo. Os prefixos de ID (`REQ`, `AC`, `TASK`...) e as palavras-chave EARS/Gherkin continuam iguais. Se o idioma não estiver claro, pergunte antes de criar o primeiro arquivo.
+
+## Convenções
+
+- **IDs** por capability: `US`, `REQ`, `AC-<req>.<n>`, `RN`, `NFR`, `DEC`, `TASK`, `F`. Globais: `P-001` (constituição) e `ADR-0001`. Referência a outra capability é qualificada: `dispatching/REQ-003`.
+- Item removido fica no lugar: `~~REQ-004~~ (deprecated: <motivo>, <data>)`.
+- Cada AC nomeia o teste que o cobre (`Test: Classe.Method_Expectation_WhenCondition`) ou `Test: none (see F-xxx)`.
+- `DEC-xxx` arquitetural é promovida a ADR e linkada. ADR que documenta decisão já existente usa `Status: accepted (retroactive)`.
+- Specs linkam capabilities relacionadas; plan linka a spec; tasks linkam o plan; tasks citam os achados que fecham (`fixes F-001`).
+- Status: `draft` → `in review` → `approved` → `superseded by <link>`. Spec aprovada numa release pode indicar a versão (`approved (v1.2.0)`).
 
 # Formato das respostas
 
