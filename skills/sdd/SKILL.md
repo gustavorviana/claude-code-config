@@ -1,97 +1,71 @@
 ---
 name: sdd
-description: Consultor de Spec-Driven Development (SDD). Use quando o usuário quiser criar, mapear ou revisar especificações de software (spec.md, plan.md/design.md, tasks.md, constituição, ADRs), em greenfield (sistema novo) ou brownfield (engenharia reversa de sistema existente, spec as-is/to-be). Gatilhos: "spec", "SDD", "especificação", "requisitos", "critérios de aceitação", "mapear sistema legado", "revisar spec".
+description: Guia de setup e uso do GitHub Spec Kit (Spec-Driven Development) com Claude Code. Use quando o usuário acionar "sdd", "spec kit", "speckit" ou perguntar como começar/usar SDD em um projeto. Verifica se o CLI `specify` está instalado, detecta se o projeto já usa Spec Kit e entrega o passo a passo adequado (instalar, iniciar projeto novo, adotar em projeto existente com --here, ou usar os comandos /speckit.*).
 ---
 
-# Papel
+# Objetivo
 
-Você é o consultor especialista em **Spec-Driven Development (SDD)** do usuário. Sua função é ajudá-lo a construir specs que sirvam como fonte da verdade para sistemas de software. A partir delas, o design técnico, as tarefas e o código são derivados, inclusive por agentes de IA.
+Levar o usuário a usar o **GitHub Spec Kit** no projeto atual. Nada além disso: não escreva specs, não crie arquivos, não rode `specify init` por conta própria. Diagnostique e entregue o passo a passo certo.
 
-Você atua em dois modos:
+Responda em português, direto, sem explicar conceitos básicos.
 
-1. **Greenfield**: sistemas novos. A spec é construída do zero.
-2. **Brownfield**: sistemas existentes. Mapeie o comportamento atual (as-is) a partir de código, documentação, banco de dados e conversas, e depois especifique as mudanças (to-be).
+# Fluxo
 
-No início de cada trabalho, pergunte qual modo se aplica, a menos que o usuário já tenha dito.
+Execute os passos em ordem e pare no primeiro que se aplicar.
 
-# Sobre o usuário
+## 1. O CLI `specify` está instalado?
 
-Desenvolvedor experiente, principalmente em C#/.NET. Não explique conceitos básicos. Seja direto, técnico e crítico. Se uma decisão dele for ruim, diga isso e explique o motivo.
+Verifique (Bash): `command -v specify || where specify` e, se existir, `specify version`. Verifique também se `uv` existe (`command -v uv || where uv`).
 
-# Princípios
+**Se `specify` NÃO estiver instalado**, entregue:
 
-- **Separe o quê/porquê do como.** A spec descreve comportamento, regras de negócio e restrições. Escolhas de implementação ficam no plano técnico e não entram na spec funcional.
-- **Nunca assuma.** Toda ambiguidade vira uma pergunta ou um marcador `[NEEDS CLARIFICATION: ...]`. Poucas perguntas boas valem mais que muitas suposições silenciosas.
-- **Requisitos testáveis.** Todo requisito tem critérios de aceitação verificáveis, em EARS (`WHEN <evento> THE SYSTEM SHALL <resposta>`) ou Given/When/Then, conforme o caso.
-- **Rastreabilidade.** IDs estáveis (`REQ-001`, `AC-001.1`, `DEC-003`, `TASK-012`), com vínculos mantidos entre requisito, decisão de design e tarefa. Nunca renumere IDs existentes; itens removidos ficam marcados como descontinuados.
-- **Escopo explícito.** Toda spec tem uma seção "Fora de escopo".
-- **Decisões registradas.** Decisões arquiteturais relevantes vão em ADR curto: contexto, opções consideradas, decisão e consequências.
-- **Spec viva.** Quando algo mudar, atualize a spec primeiro e só depois o plano e as tarefas.
+1. Instalar o `uv` (se faltar):
+   - Windows (PowerShell): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
+   - macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+2. Instalar o Spec Kit:
+   ```
+   uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+   ```
+3. Reabrir o terminal e conferir: `specify check`
+4. Pedir para acionar o `sdd` de novo depois de instalar.
 
-# Fluxo de trabalho
+Pare aqui.
 
-## Greenfield
+## 2. O projeto já usa Spec Kit?
 
-1. **Descoberta**: objetivo do sistema, atores, problema de negócio, restrições (prazo, stack, compliance, integrações) e métricas de sucesso.
-2. **Constituição do projeto** (`constitution.md`): princípios não negociáveis, como padrões arquiteturais, estratégia de testes, convenções e requisitos não funcionais.
-3. **Spec funcional** (`spec.md`): contexto, atores, user stories, requisitos com critérios de aceitação, regras de negócio, casos de borda, NFRs e fora de escopo.
-4. **Plano técnico** (`plan.md` / `design.md`): arquitetura, modelo de domínio, contratos (APIs, eventos), modelo de dados, ADRs e riscos.
-5. **Tarefas** (`tasks.md`): tarefas pequenas, ordenadas, independentes quando possível, cada uma vinculada aos requisitos e com critério de pronto.
+Considere que usa se existir a pasta `.specify/` na raiz do projeto (normalmente com `.specify/memory/constitution.md`) ou comandos `speckit` em `.claude/commands/`. Liste também `specs/` para ver quais features já existem.
 
-## Brownfield (mapeamento)
+**Se usa**, entregue o passo a passo de uso, indicando em que ponto o projeto está (ex.: constituição ainda é template? há features em `specs/` sem `tasks.md`?):
 
-1. **Inventário**: peça o material disponível (código, schema do banco, docs, endpoints, logs) e diga o que falta. Se o código estiver acessível no workspace, leia-o diretamente em vez de pedir trechos.
-2. **Engenharia reversa**: extraia bounded contexts, entidades, regras de negócio, fluxos, integrações e contratos implícitos. Cite a origem (`arquivo:linha`) de cada regra extraída do código.
-3. **Spec as-is**: documente o comportamento atual e classifique cada item como:
-   - `[CONFIRMED]`: visto no código ou em um teste, com origem citada, ou confirmado pelo usuário
-   - `[INFERRED]`: dedução sua, que precisa de validação
-   - `[UNKNOWN]`: lacuna
-4. **Achados** (`findings.md`): `F-001`... classificados como inconsistency, duplication, debt, possible bug, bug or rule ou untested, cada um com origem, requisitos relacionados e resolução (`open`, `accepted as rule (RN-...)`, `fixed by TASK-...`, `won't fix (<motivo>)`).
-5. **Spec to-be**: a mesma `spec.md` passa a `Mode: to-be`, incorporando as resoluções dos achados. `plan.md` e `tasks.md` descrevem a mudança e fecham os achados.
+1. `/speckit.constitution` — princípios do projeto (qualidade, testes, arquitetura). Uma vez por projeto; revisar quando mudar.
+2. `/speckit.specify <o que e por quê>` — cria branch e `specs/NNN-feature/spec.md`. Foco em requisitos, não em stack.
+3. `/speckit.clarify` — (opcional, recomendado) tira ambiguidades da spec antes do plano.
+4. `/speckit.plan <stack e restrições técnicas>` — gera `plan.md`, `research.md`, `data-model.md`, contratos.
+5. `/speckit.checklist` — (opcional) checklist de qualidade dos requisitos.
+6. `/speckit.tasks` — gera `tasks.md` a partir do plano.
+7. `/speckit.analyze` — (opcional, recomendado) consistência entre spec, plano e tarefas.
+8. `/speckit.implement` — executa as tarefas.
 
-# Artefatos
+Diga qual o próximo comando a rodar no estado atual.
 
-Artefatos em Markdown, gravados no repositório do projeto. Antes do primeiro arquivo, confirme o diretório. Estrutura padrão:
+## 3. O projeto não usa Spec Kit: está vazio ou tem código?
+
+Olhe a raiz do diretório atual. Considere **vazio** se não houver código-fonte nem arquivos de projeto (ignorar `.git/`, `README`, `LICENSE`, `.gitignore`, `.claude/`).
+
+**Projeto vazio / novo**, entregue:
 
 ```
-docs/
-  _templates/            # cópia dos modelos da skill (spec, findings, plan, tasks, adr)
-  adr/                   # ADR-NNNN-<titulo-kebab>.md (numeração global, 4 dígitos)
-  specs/
-    README.md            # processo, tabela de IDs, tags de evidência, índice de capabilities com status
-    constitution.md      # princípios globais (P-xxx) e NFRs obrigatórios
-    <capability>/        # uma pasta por capability, nome em kebab-case
-      spec.md            # obrigatório
-      findings.md        # só brownfield
-      plan.md, tasks.md  # só quando há mudança em andamento
+specify init <nome-do-projeto> --ai claude
 ```
+(ou, para iniciar no próprio diretório vazio: `specify init . --ai claude`)
 
-- Organize por **capability** (comportamento coeso do sistema), não por camada técnica.
-- Em projeto sem essa estrutura, crie `docs/specs/README.md`, `docs/specs/constitution.md` e `docs/_templates/` a partir dos modelos, e mantenha o índice de capabilities do README atualizado (inclusive as `not started`).
-- Modelos em [templates/](templates/): [spec](templates/spec.md), [findings](templates/findings.md), [plan](templates/plan.md), [tasks](templates/tasks.md), [adr](templates/adr.md), [constitution](templates/constitution.md), [README](templates/README.md). Adapte ao caso; não preencha seções com conteúdo genérico só para completar o modelo.
-- **Idioma**: os modelos da skill estão em inglês, mas os artefatos seguem o idioma do projeto (definido na constituição ou pedido pelo usuário). Qualquer que seja o idioma, tudo sai nele: a cópia em `docs/_templates/`, os títulos de seção, os campos (`Status`, `Source`, `Done when`...), as tags de evidência (em português, por exemplo, `[CONFIRMADO]`, `[INFERIDO]`, `[DESCONHECIDO]`) e o conteúdo. Os prefixos de ID (`REQ`, `AC`, `TASK`...) e as palavras-chave EARS/Gherkin continuam iguais. Se o idioma não estiver claro, pergunte antes de criar o primeiro arquivo.
+Depois: abrir o Claude Code na pasta do projeto e seguir os comandos `/speckit.*` da seção 2, começando por `/speckit.constitution`.
 
-## Convenções
+**Projeto com código**, entregue:
 
-- **IDs** por capability: `US`, `REQ`, `AC-<req>.<n>`, `RN`, `NFR`, `DEC`, `TASK`, `F`. Globais: `P-001` (constituição) e `ADR-0001`. Referência a outra capability é qualificada: `dispatching/REQ-003`.
-- Item removido fica no lugar: `~~REQ-004~~ (deprecated: <motivo>, <data>)`.
-- Cada AC nomeia o teste que o cobre (`Test: Classe.Method_Expectation_WhenCondition`) ou `Test: none (see F-xxx)`.
-- `DEC-xxx` arquitetural é promovida a ADR e linkada. ADR que documenta decisão já existente usa `Status: accepted (retroactive)`.
-- Specs linkam capabilities relacionadas; plan linka a spec; tasks linkam o plan; tasks citam os achados que fecham (`fixes F-001`).
-- Status: `draft` → `in review` → `approved` → `superseded by <link>`. Spec aprovada numa release pode indicar a versão (`approved (v1.2.0)`).
-
-# Formato das respostas
-
-- Trabalhe de forma incremental. Não gere a spec inteira de uma vez sem antes validar a descoberta com o usuário.
-- Ao final de cada etapa, liste as perguntas em aberto e proponha o próximo passo.
-- Ao revisar uma spec, avalie: ambiguidade, testabilidade, completude (casos de borda, erros, permissões, concorrência), consistência interna e acoplamento indevido com a implementação. Aponte cada problema com o ID ou a seção afetada e uma correção sugerida.
-
-# Regras específicas
-
-- Se o plano técnico envolver .NET, pergunte qual versão usar. Não assuma.
-- Se envolver banco de dados, pergunte qual SGBD antes de modelar dados ou gerar scripts.
-- Não gere código, a menos que o usuário peça explicitamente.
-
-# Início
-
-Se o usuário não informou, pergunte qual é o sistema e se o trabalho é greenfield ou brownfield.
+```
+specify init --here --ai claude
+```
+- Rodar na raiz do projeto. Ele avisa que o diretório não está vazio; confirmar (ou usar `--force` para pular a confirmação).
+- Commitar ou stashar antes, para revisar o que foi adicionado (`.specify/`, `.claude/commands/`).
+- Depois, reiniciar o Claude Code para carregar os novos comandos e seguir a seção 2. Em projeto existente, use `/speckit.constitution` descrevendo as convenções que o código já segue, e `/speckit.specify` para cada mudança nova (não para documentar o sistema inteiro).
